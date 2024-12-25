@@ -1,0 +1,30 @@
+{
+  "name": "weeblib",
+  "version": "1.0.0",
+  "description": "A library for anime.",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "Nodejs",
+    "Express",
+    "JWT",
+    "MongoDB",
+    "mongoose",
+    "Postman",
+    "Backend"
+  ],
+  "author": "Janpol Hidalgo",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7"
+  }
+}
