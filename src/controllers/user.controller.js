@@ -3,6 +3,27 @@ import { apiError } from '../utils/apiError.js'
 import { User } from '../models/user.model.js'
 import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
 import { apiResponse } from '../utils/apiResponse.js'
+import { triggerAsyncId } from 'async_hooks'
+
+const generateAccessAndRefreshToken = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+
+        if (!user) {
+            throw new apiError(404, 'User not found')
+        }
+
+        const accessToken = await user.generateAccessToken()
+        const refreshToken = await user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save()
+
+        return {accessToken, refreshToken}
+    } catch(error) {
+        throw new apiError(500, 'Something went wrong while generating access and refresg tokens')
+    }
+}
 
 const registerUser = asyncHandler(async (req, res) => {
     const { fullName, email, username, password } = req.body
@@ -87,4 +108,51 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 })
 
-export { registerUser}
+const loginUser = asyncHandler(async (req, res) => {
+    const { email, username, password } = req.body
+
+    if (!email) {
+        throw new apiError(400, 'Email is required')
+    }
+
+    // Validation
+    const user = await User.findOne({
+        $or: [{ email }, { username }]
+    })
+
+    if (!user) {
+        throw new apiError(404, 'User not found')
+    }
+
+    const isComparePassword = await user.isComparePassword(password)
+
+    if (!isComparePassword) {
+        throw new apiError(400, 'Invalid password')
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+
+    const loggedInUser = await User.findById(user._id).select('-password -refreshToken')
+
+    if (!loggedInUser) {
+        throw new apiError(500, 'Something went wrong while logging in')
+    }
+
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+    }
+
+    return res
+        .status(200)
+        .cookie('accessToken', accessToken, options)
+        .cookie('refreshToken', refreshToken, options)
+        .json(new apiResponse(
+            200,
+            { user: loggedInUser, accessToken, refreshToken },
+            'User logged in successfully'
+        ))
+})
+
+
+export { registerUser, loginUser }
