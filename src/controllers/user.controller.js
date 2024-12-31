@@ -4,7 +4,7 @@ import { User } from '../models/user.model.js'
 import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
 import { apiResponse } from '../utils/apiResponse.js'
 import jwt from 'jsonwebtoken'
-
+import mongoose from 'mongoose'
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -20,9 +20,9 @@ const generateAccessAndRefreshToken = async (userId) => {
         user.refreshToken = refreshToken
         await user.save({ validateBeforeSave: false })
 
-        return {accessToken, refreshToken}
-    } catch(error) {
-        throw new apiError(500, 'Something went wrong while generating access and refresg tokens')
+        return { accessToken, refreshToken }
+    } catch (error) {
+        throw new apiError(500, 'Something went wrong while generating access and refresh tokens')
     }
 }
 
@@ -34,7 +34,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     const existedUser = await User.findOne({
-        $or: [{email}, {username}]
+        $or: [{ email }, { username }]
     })
 
     if (existedUser) {
@@ -145,14 +145,14 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     return res
-    .status(200)
-    .cookie('accessToken', accessToken, options)
-    .cookie('refreshToken', refreshToken, options)
-    .json(new apiResponse(
-        200,
-        { user: loggedInUser, accessToken, refreshToken },
-        'User logged in successfully'
-    ))
+        .status(200)
+        .cookie('accessToken', accessToken, options)
+        .cookie('refreshToken', refreshToken, options)
+        .json(new apiResponse(
+            200,
+            { user: loggedInUser, accessToken, refreshToken },
+            'User logged in successfully'
+        ))
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -172,10 +172,10 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
 
     return res
-    .status(200)
-    .cookie('accessToken', options)
-    .cookie('refreshToken', options)
-    .json(new apiResponse(200, {}, 'User logged out successfully'))
+        .status(200)
+        .cookie('accessToken', '', options)
+        .cookie('refreshToken', '', options)
+        .json(new apiResponse(200, {}, 'User logged out successfully'))
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -210,20 +210,20 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user._id)
 
         return res
-        .status(200)
-        .cookie('accessToken', accessToken, options)
-        .cookie('refreshToken', newRefreshToken, options)
-        .json(new apiResponse(
-            200,
-            { accessToken, refreshToken: newRefreshToken },
-            'Access token refreshed successfully'
-        ))
+            .status(200)
+            .cookie('accessToken', accessToken, options)
+            .cookie('refreshToken', newRefreshToken, options)
+            .json(new apiResponse(
+                200,
+                { accessToken, refreshToken: newRefreshToken },
+                'Access token refreshed successfully'
+            ))
     } catch (error) {
         throw new apiError(500, 'Something went wrong while refreshing access token')
     }
 })
 
-const changeCurrentPassword = asyncHandler(async (req, res) => { 
+const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body
 
     if (!currentPassword) {
@@ -236,7 +236,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         throw new apiError(404, 'User not found')
     }
 
-    const isComparePassword = await user.isComparePassword(currentPassword) 
+    const isComparePassword = await user.isComparePassword(currentPassword)
 
     if (!isComparePassword) {
         throw new apiError(400, 'Invalid password')
@@ -251,7 +251,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     return res.status(200).json(new apiResponse(200, req.user, 'User details fetched successfully'))
 })
 
-const updateAcountDetails = asyncHandler(async (req, res) => { 
+const updateAcountDetails = asyncHandler(async (req, res) => {
     const { fullName, email, username } = req.body
 
     if ([fullName, email, username].some((field) => field?.trim() === '')) {
@@ -307,8 +307,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new apiError(400, 'Cover image file is missing')
     }
 
-    const coverImage= await uploadOnCloudinary(coverLocalPath)
-    
+    const coverImage = await uploadOnCloudinary(coverLocalPath)
+
     if (!coverImage.url) {
         throw new apiError(500, 'Cover image upload failed')
     }
@@ -362,7 +362,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                     channelSubscribedTo: { $size: '$subscribedTo' },
                     isSubscribed: {
                         $cond: {
-                            if: {$in: [req.user?._id, '$subscribers.subscriber']},
+                            if: { $in: [req.user?._id, '$subscribers.subscriber'] },
                             then: true,
                             else: false
                         }
@@ -440,15 +440,15 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     return res.status(200).json(new apiResponse(200, user[0]?.watchedVideos, 'Watch history fetched successfully'))
 })
 
-export { 
+export {
     registerUser,
-    loginUser, 
-    refreshAccessToken, 
-    logoutUser, 
-    changeCurrentPassword, 
+    loginUser,
+    refreshAccessToken,
+    logoutUser,
+    changeCurrentPassword,
     getCurrentUser,
     updateAcountDetails,
-    updateUserAvatar, 
+    updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory
