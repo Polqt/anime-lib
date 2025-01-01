@@ -21,12 +21,12 @@ router.route('/')
             { name: 'thumbnailFile',maxCount: '1'},
         ]),
         uploadVideo
-    )
+    ) // Good
 
 router.route('/:videoId')
-    .get(getVideoById)
-    .patch(upload.single('videoFile'), updateVideo)
-    .delete(deleteVideo)
+    .get(getVideoById) // Good
+    .patch(upload.single('thumbnailFile'), updateVideo)
+    .delete(deleteVideo) // Good 
 
 router.route('/toggle/publish/:videoId').patch(togglePublishStatus)
 
