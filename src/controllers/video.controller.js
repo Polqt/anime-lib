@@ -9,50 +9,75 @@ import { deleteFromCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy = 'createdAt', sortType = 'desc', userId } = req.query
 
-    const options = {
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
-        sort: { [sortBy]: sortType === 'asc' ? 1 : -1 },
-        populate: 'owner',
-        lean: true,
+    const pageNumber = parseInt(page)
+    const limitNumber = parseInt(limit)
+
+    const skip = (pageNumber - 1) * limitNumber
+
+    const sortOptions = {}
+    sortOptions[sortBy] = sortType === 'asc' ? 1 : -1
+
+    const filter = {
+        ...(query && {
+            $or: [
+                { title: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } }
+            ]
+        }),
+        ...(userId && { owner: userId }),
     }
 
-    const queryOptions = {
-        isPublished: true,
-        isDeleted: false
+    try {
+        const videos = await Video.aggregate([
+            {
+                $match: filter
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'owner',
+                    foreignField: '_id',
+                    as: 'owner'
+                },
+            },
+            {
+                $unwind: {
+                    path: '$owner',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    thumbnail: 1,
+                    videoFile: 1,
+                    owner: {
+                        _id: 1,
+                        username: 1,
+                        fullName: 1,
+                    },
+                    createdAt: 1,
+                    updatedAt: 1,
+                    isPublished: 1,
+                    duration: 1,
+                }
+            },
+            { $sort: sortOptions },
+            { $skip: skip },
+            { $limit: limitNumber }
+        ])
+
+        const totalVideos = await Video.countDocuments(filter)
+        const totalPages = Math.ceil(totalVideos / limitNumber)
+
+        return res
+            .status(200)
+            .json(new apiResponse(200, { videos, page: pageNumber, limit: limit, totalPages, totalVideos }, 'Videos retrieved successfully'))
+    } catch (error) {
+        throw new apiError(500, 'Failed to retrieve videos')
     }
-
-    if (query) {
-        queryOptions.$or = [
-            { title: { $regex: query, $options: 'i' } },
-            { description: { $regex: query, $options: 'i' } },
-        ]
-    }
-
-    if (userId) {
-        queryOptions.owner = new mongoose.Types.ObjectId(userId)
-    }
-
-    const aggregationPipeline = [
-        {
-            $match: queryOptions,
-        }
-    ]
-
-    let videos;
-
-    if (typeof Video.aggregatePaginate === 'function') {
-        videos = await Video.aggregatePaginate(aggregationPipeline, options)
-    } else {
-        throw new apiError(500, 'Failed to fetch videos')
-    }
-
-    return res.status(200).json({
-        videos: videos.docs,
-        totalVideos: videos.totalDocs,
-        totalPages: videos.totalPages,
-        currentPage: videos.page,
-    })
 })
 
 const uploadVideo = asyncHandler(async (req, res) => {
