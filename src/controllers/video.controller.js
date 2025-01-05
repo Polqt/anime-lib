@@ -12,19 +12,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const pageNumber = parseInt(page)
     const limitNumber = parseInt(limit)
 
-    const skip = (pageNumber - 1) * limitNumber
-
-    const sortOptions = {}
-    sortOptions[sortBy] = sortType === 'asc' ? 1 : -1
-
     const filter = {
-        ...(query && {
-            $or: [
-                { title: { $regex: query, $options: 'i' } },
-                { description: { $regex: query, $options: 'i' } }
-            ]
-        }),
-        ...(userId && { owner: userId }),
+        ...(query && { owner: userId })
     }
 
     try {
@@ -64,9 +53,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
                     duration: 1,
                 }
             },
-            { $sort: sortOptions },
-            { $skip: skip },
-            { $limit: limitNumber }
         ])
 
         const totalVideos = await Video.countDocuments(filter)
@@ -74,7 +60,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
         return res
             .status(200)
-            .json(new apiResponse(200, { videos, page: pageNumber, limit: limit, totalPages, totalVideos }, 'Videos retrieved successfully'))
+            .json(new apiResponse(200, { videos, page: pageNumber, limit: limitNumber, totalPages, totalVideos }, 'Videos retrieved successfully'))
     } catch (error) {
         throw new apiError(500, 'Failed to retrieve videos')
     }

@@ -17,4 +17,5 @@ router
 
 router.route('/subscriber/:subscriberId').get(getSubscribedChannels)
 
+
 export default router
