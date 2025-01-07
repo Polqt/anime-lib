@@ -13,7 +13,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         const user = await User.findById(channelId) 
 
         if (!user) {
-            throw new apiError(404, 'User not found')
+            throw new apiError(404, 'Channel not found')
         }
 
         const subscription = await Subscription.findOne({ channel: channelId, subscriber: req.user?._id })
@@ -30,9 +30,9 @@ const toggleSubscription = asyncHandler(async (req, res) => {
             message = 'Subscribed successfully'
         }
 
-        return res.status(200).json(new apiResponse(200, { updatedSubscription }, 'Subscription status retrieved successfully'))
+        return res.status(200).json(new apiResponse(200, { updatedSubscription }, message))
     } catch (error) {
-        throw new apiError(400, 'Failed to toggle subscription');
+        throw new apiError(400, 'Failed to toggle subscription' || error?.message);
     }
 })
 
